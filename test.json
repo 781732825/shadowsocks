@@ -1,0 +1,11 @@
+{
+    "server":"0.0.0.0",
+    "server_port":8111,
+    "local_port":8010,
+    "password":"fuckGFW4times!",
+    "timeout":600,
+    "method":"aes-256-ctr",
+    "local_address":"0.0.0.0",
+    "fast_open":false,
+    "one_time_auth":false
+}
