@@ -123,7 +123,8 @@ class UDPRelay(object):
             raise Exception("UDP can't get addrinfo for %s:%d" %
                             (self._listen_addr, self._listen_port))
         af, socktype, proto, canonname, sa = addrs[0]
-        server_socket = socket.socket(af, socktype, proto)
+        # server_socket = socket.socket(af, socktype, proto)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self._listen_addr, self._listen_port))
         server_socket.setblocking(False)
         self._server_socket = server_socket
@@ -148,6 +149,7 @@ class UDPRelay(object):
             # just an address
             pass
 
+    # >>>>>>>>>>>>>>>
     def _handle_server(self):
         server = self._server_socket
         data, r_addr = server.recvfrom(BUF_SIZE)
@@ -211,6 +213,7 @@ class UDPRelay(object):
         af, socktype, proto, canonname, sa = addrs[0]
         key = client_key(r_addr, af)
         client = self._cache.get(key, None)
+        # add client to eventloop
         if not client:
             # TODO async getaddrinfo
             if self._forbidden_iplist:
@@ -248,7 +251,9 @@ class UDPRelay(object):
             else:
                 shell.print_exception(e)
 
+    # <<<<<<<<<<<<<<<
     def _handle_client(self, sock):
+        print("handle_client")
         data, r_addr = sock.recvfrom(BUF_SIZE)
         if not data:
             logging.debug('UDP handle_client: data is empty')

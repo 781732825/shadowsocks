@@ -29,7 +29,6 @@ ONETIMEAUTH_BYTES = 10
 ONETIMEAUTH_CHUNK_BYTES = 12
 ONETIMEAUTH_CHUNK_DATA_LEN = 2
 
-
 def sha1_hmac(secret, data):
     return hmac.new(secret, data, hashlib.sha1).digest()
 
@@ -40,7 +39,6 @@ def onetimeauth_verify(_hash, data, key):
 
 def onetimeauth_gen(data, key):
     return sha1_hmac(key, data)[:ONETIMEAUTH_BYTES]
-
 
 def compat_ord(s):
     if type(s) == int:

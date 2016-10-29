@@ -310,8 +310,8 @@ class TCPRelayHandler(object):
                 addr_to_send = socket.inet_pton(self._local_sock.family,
                                                 addr)
                 port_to_send = struct.pack('>H', port)
-                self._write_to_sock(header + addr_to_send + port_to_send,
-                                    self._local_sock)
+                header = header + addr_to_send + port_to_send
+                self._write_to_sock(header, self._local_sock)
                 self._stage = STAGE_UDP_ASSOC
                 # just wait for the client to disconnect
                 return
@@ -347,6 +347,14 @@ class TCPRelayHandler(object):
                     logging.warn('one time auth fail')
                     self.destroy()
                     return
+
+                print("server OTA request: ")
+                print("\tsha1 = %s" % map(ord, _hash))
+                print("\tdecipher_iv = %s" % map(ord, self._encryptor.decipher_iv))
+                print("\tdecipher_key = %s" % map(ord, self._encryptor.key))
+                print("\theader = %s" % map(ord, _data))
+                print("\tdata = %s" % map(ord, data))
+
                 header_length += ONETIMEAUTH_BYTES
         self._remote_address = (common.to_str(remote_addr), remote_port)
         # pause reading
@@ -362,8 +370,15 @@ class TCPRelayHandler(object):
             if self._ota_enable_session:
                 data = common.chr(addrtype | ADDRTYPE_AUTH) + data[1:]
                 key = self._encryptor.cipher_iv + self._encryptor.key
-                data += onetimeauth_gen(data, key)
+                sha1 = onetimeauth_gen(data, key)
+                data += sha1
+                print("client OTA request: ")
+                print("\tsha1 = %s" % map(ord, sha1))
+                print("\tcipher_iv = %s" % map(ord, self._encryptor.cipher_iv))
+                print("\tcipher_key = %s" % map(ord, self._encryptor.key))
+                print("\theader = %s" % map(ord, data))
             data_to_send = self._encryptor.encrypt(data)
+            print("client OTA request (after encrypted): ", map(ord, data_to_send))
             self._data_to_write_to_remote.append(data_to_send)
             # notice here may go into _handle_dns_resolved directly
             self._dns_resolver.resolve(self._chosen_server[0],
@@ -371,8 +386,10 @@ class TCPRelayHandler(object):
         else:
             if self._ota_enable_session:
                 data = data[header_length:]
+                n = len(self._data_to_write_to_remote)
                 self._ota_chunk_data(data,
                                      self._data_to_write_to_remote.append)
+                print("server OTA request (after packed): ", map(ord, self._data_to_write_to_remote[n:]))
             elif len(data) > header_length:
                 self._data_to_write_to_remote.append(data[header_length:])
             # notice here may go into _handle_dns_resolved directly
@@ -553,9 +570,13 @@ class TCPRelayHandler(object):
         if not data:
             self.destroy()
             return
+
+        print("data received: %s" % map(ord, data))
+
         self._update_activity(len(data))
         if not is_local:
             data = self._encryptor.decrypt(data)
+            print("data received (decrypted): %s" % map(ord, data))
             if not data:
                 return
         if self._stage == STAGE_STREAM:
@@ -628,6 +649,7 @@ class TCPRelayHandler(object):
         self.destroy()
 
     def handle_event(self, sock, event):
+        logging.debug('handle_event: %s' % event)
         # handle all events in this handler and dispatch them to methods
         if self._stage == STAGE_DESTROYED:
             logging.debug('ignore handle_event: destroyed')

@@ -59,7 +59,8 @@ def EVP_BytesToKey(password, key_len, iv_len):
         if i > 0:
             data = m[i - 1] + password
         md5.update(data)
-        m.append(md5.digest())
+        buf = md5.digest()
+        m.append(buf)
         i += 1
     ms = b''.join(m)
     key = ms[:key_len]
@@ -107,6 +108,7 @@ class Encryptor(object):
         if op == 1:
             # this iv is for cipher not decipher
             self.cipher_iv = iv[:m[1]]
+
         return m[2](method, key, iv, op)
 
     def encrypt(self, buf):
@@ -124,13 +126,14 @@ class Encryptor(object):
         if self.decipher is None:
             decipher_iv_len = self._method_info[1]
             decipher_iv = buf[:decipher_iv_len]
+
             self.decipher_iv = decipher_iv
             self.decipher = self.get_cipher(self.password, self.method, 0,
                                             iv=decipher_iv)
             buf = buf[decipher_iv_len:]
-            if len(buf) == 0:
-                return buf
-        return self.decipher.update(buf)
+
+        decrypted = self.decipher.update(buf)
+        return decrypted
 
 
 def gen_key_iv(password, method):
@@ -154,7 +157,6 @@ def encrypt_all_m(key, iv, m, method, data):
 
 
 def dencrypt_all(password, method, data):
-    result = []
     method = method.lower()
     (key_len, iv_len, m) = method_supported[method]
     key = None
@@ -165,8 +167,9 @@ def dencrypt_all(password, method, data):
     iv = data[:iv_len]
     data = data[iv_len:]
     cipher = m(method, key, iv, 0)
-    result.append(cipher.update(data))
-    return b''.join(result), key, iv
+    result = cipher.update(data)
+    print("dencrypt_all decrypted: %s" % map(ord, result))
+    return result, key, iv
 
 
 def encrypt_all(password, method, op, data):
@@ -186,6 +189,7 @@ def encrypt_all(password, method, op, data):
         data = data[iv_len:]
     cipher = m(method, key, iv, op)
     result.append(cipher.update(data))
+    print("encrypt_all decrypted: %s" % map(ord, b''.join(result)))
     return b''.join(result)
 
 

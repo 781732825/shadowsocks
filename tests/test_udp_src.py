@@ -5,7 +5,7 @@ import socks
 
 
 SERVER_IP = '127.0.0.1'
-SERVER_PORT = 1081
+SERVER_PORT = 8010
 
 
 if __name__ == '__main__':
